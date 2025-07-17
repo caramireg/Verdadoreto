@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verdad o Reto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lobster&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .lobster-font {
+            font-family: 'Lobster', cursive;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 600;
+            text-align: center;
+            vertical-align: middle;
+            cursor: pointer;
+            border: 1px solid transparent;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease-in-out;
+            user-select: none;
+        }
+        .btn-primary {
+            color: #fff;
+            background-color: #4f46e5;
+            border-color: #4f46e5;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+            border-color: #3730a3;
+        }
+        .btn-secondary {
+            color: #fff;
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+        .btn-secondary:hover {
+            background-color: #059669;
+            border-color: #047857;
+        }
+        .btn-danger {
+            color: #fff;
+            background-color: #ef4444;
+            border-color: #ef4444;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+            border-color: #b91c1c;
+        }
+        .btn-spin {
+            padding: 1.5rem 3rem;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, #f97316, #ec4899, #8b5cf6);
+            color: white;
+            border: none;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2);
+            transform: scale(1);
+        }
+        .btn-spin:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px -3px rgba(0,0,0,0.3);
+        }
+        .hidden {
+            display: none;
+        }
+        .timer {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Pantalla de Configuración -->
+    <div id="setup-screen" class="card w-full max-w-md text-center">
+        <h1 class="lobster-font text-5xl text-indigo-600 mb-4">Verdad o Reto</h1>
+        <p class="text-gray-600 mb-6">¡Prepara la diversión! Ingresa los datos para comenzar.</p>
+        
+        <div class="mb-4">
+            <label for="player-count" class="block text-sm font-medium text-gray-700 mb-1">Número de Jugadores:</label>
+            <input type="number" id="player-count" min="2" max="10" value="2" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+        </div>
+        
+        <div id="player-names-container" class="space-y-3 mb-6"></div>
+        
+        <button id="start-game-btn" class="btn btn-primary w-full">¡Comenzar Juego!</button>
+    </div>
+
+    <!-- Pantalla de Juego -->
+    <div id="game-screen" class="hidden w-full max-w-2xl text-center">
+        <div id="turn-display" class="card mb-6">
+            <h2 id="turn-title" class="text-3xl font-bold text-gray-800"></h2>
+            <p id="turn-subtitle" class="text-gray-500 mt-2"></p>
+        </div>
+
+        <!-- Contenedor de la Ruleta -->
+        <div id="wheel-container" class="card mb-6">
+            <p class="text-lg text-gray-700 mb-4">¡Es hora de ver a quién le toca!</p>
+            <button id="spin-btn" class="btn btn-spin">Girar la Ruleta</button>
+        </div>
+
+        <!-- Contenedor de Elección (Verdad o Reto) -->
+        <div id="choice-container" class="hidden card mb-6">
+            <p class="text-lg text-gray-700 mb-4">¿Qué eliges?</p>
+            <div class="flex justify-center gap-4">
+                <button id="truth-btn" class="btn btn-primary flex-1">Verdad</button>
+                <button id="dare-btn" class="btn btn-secondary flex-1">Reto</button>
+            </div>
+        </div>
+
+        <!-- Contenedor de la Tarea (Pregunta o Reto) -->
+        <div id="task-container" class="hidden card mb-6">
+            <div id="timer-display" class="timer mb-4"></div>
+            <p id="task-text" class="text-xl text-gray-800 font-medium p-4 bg-indigo-50 rounded-lg"></p>
+            <button id="end-turn-btn" class="btn btn-danger mt-6">Turno Terminado</button>
+        </div>
+        
+        <button id="end-game-btn" class="text-gray-500 hover:text-red-600 transition-colors">Terminar Juego</button>
+    </div>
+
+    <script>
+        // --- ELEMENTOS DEL DOM ---
+        const setupScreen = document.getElementById('setup-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const playerCountInput = document.getElementById('player-count');
+        const playerNamesContainer = document.getElementById('player-names-container');
+        const startGameBtn = document.getElementById('start-game-btn');
+        const endGameBtn = document.getElementById('end-game-btn');
+        const turnTitle = document.getElementById('turn-title');
+        const turnSubtitle = document.getElementById('turn-subtitle');
+        const wheelContainer = document.getElementById('wheel-container');
+        const spinBtn = document.getElementById('spin-btn');
+        const choiceContainer = document.getElementById('choice-container');
+        const truthBtn = document.getElementById('truth-btn');
+        const dareBtn = document.getElementById('dare-btn');
+        const taskContainer = document.getElementById('task-container');
+        const timerDisplay = document.getElementById('timer-display');
+        const taskText = document.getElementById('task-text');
+        const endTurnBtn = document.getElementById('end-turn-btn');
+
+        // --- DATOS DEL JUEGO ---
+        let players = [];
+        let playersInCurrentRound = [];
+        let currentPlayer = null;
+        let timerInterval = null;
+
+        const allTruths = [
+            "¿Cuál es la película que más te ha hecho llorar?",
+            "Si pudieras tener un superpoder, ¿cuál sería y por qué?",
+            "¿Cuál es el sueño más extraño o divertido que has tenido?",
+            "¿Qué es lo más vergonzoso que te ha pasado en público?",
+            "¿Hay alguna comida que no soportas y que a todo el mundo le encanta?",
+            "¿Cuál es tu talento oculto que poca gente conoce?",
+            "Si pudieras viajar en el tiempo, ¿irías al pasado o al futuro y a qué época?",
+            "¿Cuál es la canción que te sabes de memoria y cantas cuando nadie te ve?",
+            "¿Qué es lo más amable que alguien ha hecho por ti?",
+            "¿Cuál fue el peor corte de pelo que has tenido en tu vida?",
+            "¿Alguna vez te has reído en un momento totalmente inapropiado?",
+            "¿Cuál es el apodo más ridículo que te han puesto?",
+            "¿Has culpado a alguien más por algo que tú hiciste?",
+            "¿Cuál es la mentira más tonta que has dicho y te han creído?",
+            "Si tu vida fuera una película, ¿qué actor o actriz te interpretaría?",
+            "¿Qué es algo que finges entender pero que en realidad no tienes ni idea?",
+            "¿Cuál es el objeto más inútil que has comprado?",
+            "Si los animales pudieran hablar, ¿cuál crees que sería el más grosero?",
+            "¿Qué moda actual crees que nos dará más vergüenza en el futuro?",
+            "¿Qué personaje histórico crees que sería más divertido para salir de fiesta?"
+        ];
+
+        const allDares = [
+            { text: "Imita a tu personaje de película favorito hasta que alguien adivine quién es.", time: 60 },
+            { text: "Habla con un acento diferente hasta tu próximo turno.", time: 120 },
+            { text: "Inventa un rap sobre el jugador que está a tu derecha.", time: 90 },
+            { text: "Haz una declaración de amor dramática a un objeto inanimado de la habitación.", time: 45 },
+            { text: "Camina como un pingüino hasta que sea tu turno de nuevo.", time: 30 },
+            { text: "Crea un baile de celebración ridículo y muéstraselo a todos.", time: 45 },
+            { text: "Intenta hacer reír al jugador de tu izquierda. Tienes un minuto.", time: 60 },
+            { text: "Recita el abecedario al revés lo más rápido que puedas.", time: 40 },
+            { text: "Haz una imitación de un animal que los demás elijan.", time: 30 },
+            { text: "Equilibra una cuchara en tu nariz durante 15 segundos.", time: 30 },
+            { text: "Dibuja a la persona que tienes en frente con los ojos cerrados.", time: 90 },
+            { text: "Narra la siguiente jugada como si fueras un comentarista deportivo.", time: 60 },
+            { text: "Crea un comercial para un objeto al azar de la habitación.", time: 120 },
+            { text: "Mantén una cara seria mientras los demás intentan hacerte reír durante un minuto.", time: 60 },
+            { text: "Haz 10 sentadillas mientras cantas 'Estrellita dónde estás'.", time: 50 }
+        ];
+
+        let availableTruths = [];
+        let availableDares = [];
+
+        // --- LÓGICA DE CONFIGURACIÓN ---
+        function updatePlayerInputs() {
+            const count = parseInt(playerCountInput.value);
+            playerNamesContainer.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `Nombre del Jugador ${i + 1}`;
+                input.className = 'w-full p-2 border border-gray-300 rounded-lg player-name-input';
+                playerNamesContainer.appendChild(input);
+            }
+        }
+
+        function initializeGame() {
+            const nameInputs = document.querySelectorAll('.player-name-input');
+            players = [];
+            let allNamesValid = true;
+            nameInputs.forEach((input, index) => {
+                if (input.value.trim() === '') {
+                    input.style.borderColor = 'red';
+                    allNamesValid = false;
+                } else {
+                    input.style.borderColor = '#d1d5db';
+                    players.push({ id: index, name: input.value.trim() });
+                }
+            });
+
+            if (!allNamesValid) {
+                alert('Por favor, ingresa un nombre para todos los jugadores.');
+                return;
+            }
+
+            availableTruths = [...allTruths];
+            availableDares = [...allDares];
+            playersInCurrentRound = [...players];
+            
+            setupScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            prepareForSpin();
+        }
+        
+        // --- LÓGICA DEL JUEGO ---
+        function prepareForSpin() {
+            taskContainer.classList.add('hidden');
+            choiceContainer.classList.add('hidden');
+            wheelContainer.classList.remove('hidden');
+            turnTitle.textContent = "¡Listos para la siguiente ronda!";
+            turnSubtitle.textContent = `Quedan ${playersInCurrentRound.length} jugadores en esta ronda.`;
+        }
+        
+        function spinWheel() {
+            if (playersInCurrentRound.length === 0) {
+                playersInCurrentRound = [...players];
+                alert("¡Ronda completa! Empezando una nueva ronda con todos los jugadores.");
+            }
+
+            const randomIndex = Math.floor(Math.random() * playersInCurrentRound.length);
+            currentPlayer = playersInCurrentRound[randomIndex];
+            playersInCurrentRound.splice(randomIndex, 1);
+
+            wheelContainer.classList.add('hidden');
+            choiceContainer.classList.remove('hidden');
+            
+            turnTitle.textContent = `¡Es el turno de ${currentPlayer.name}!`;
+            turnSubtitle.textContent = "Elige sabiamente...";
+        }
+
+        function selectTruth() {
+            if (availableTruths.length === 0) {
+                alert("¡Se han acabado las preguntas de verdad! El juego se reiniciará.");
+                endGame();
+                return;
+            }
+            const randomIndex = Math.floor(Math.random() * availableTruths.length);
+            const truth = availableTruths[randomIndex];
+            availableTruths.splice(randomIndex, 1); // No se repite
+
+            displayTask(truth, 30);
+        }
+
+        function selectDare() {
+            if (availableDares.length === 0) {
+                alert("¡Se han acabado los retos! El juego se reiniciará.");
+                endGame();
+                return;
+            }
+            const randomIndex = Math.floor(Math.random() * availableDares.length);
+            const dare = availableDares[randomIndex];
+            availableDares.splice(randomIndex, 1); // No se repite
+
+            displayTask(dare.text, dare.time);
+        }
+
+        function displayTask(text, time) {
+            choiceContainer.classList.add('hidden');
+            taskContainer.classList.remove('hidden');
+            taskText.textContent = text;
+            startTimer(time);
+        }
+
+        function startTimer(duration) {
+            clearInterval(timerInterval);
+            let timeLeft = duration;
+            timerDisplay.textContent = timeLeft;
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "¡Tiempo!";
+                }
+            }, 1000);
+        }
+
+        function endTurn() {
+            clearInterval(timerInterval);
+            prepareForSpin();
+        }
+        
+        function endGame() {
+            // **CORRECCIÓN APLICADA AQUÍ**
+            // Se elimina el diálogo de confirmación para asegurar la funcionalidad
+            // y se reinicia el estado del juego y la interfaz de usuario.
+
+            // 1. Reiniciar todas las variables de estado del juego
+            players = [];
+            playersInCurrentRound = [];
+            currentPlayer = null;
+            clearInterval(timerInterval);
+            
+            // 2. Cambiar las pantallas
+            gameScreen.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+            
+            // 3. Reiniciar la pantalla de configuración a su estado inicial
+            playerCountInput.value = '2'; 
+            updatePlayerInputs();
+        }
+
+        // --- EVENT LISTENERS ---
+        playerCountInput.addEventListener('change', updatePlayerInputs);
+        startGameBtn.addEventListener('click', initializeGame);
+        spinBtn.addEventListener('click', spinWheel);
+        truthBtn.addEventListener('click', selectTruth);
+        dareBtn.addEventListener('click', selectDare);
+        endTurnBtn.addEventListener('click', endTurn);
+        endGameBtn.addEventListener('click', endGame);
+
+        // --- INICIALIZACIÓN ---
+        window.onload = () => {
+            updatePlayerInputs();
+        };
+    </script>
+</body>
+</html>
+
+  
